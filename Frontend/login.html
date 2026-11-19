@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Gestión de Tareas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="card auth-card shadow text-center p-4" style="width: 400px; border-radius: 15px;">
+            <div class="logo-circle mb-3 mx-auto" style="width: 80px; height: 80px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-person-fill fs-1 text-secondary"></i>
+            </div>
+            <h3 class="mb-4 fw-bold">Iniciar Sesión</h3>
+            <div id="message" class="auth-message mb-3 d-none"></div>
+            <form id="formLogin">
+                <div class="mb-3">
+                    <input type="text" id="name" class="form-control" placeholder="Nombre de usuario" required>
+                </div>
+                <div class="mb-3">
+                    <input type="password" id="password" class="form-control" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mb-3 fw-bold">Entrar</button>
+                <p class="small">¿No tienes cuenta? <a href="registro.html" class="text-decoration-none">Registrarse</a></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        
+        document.getElementById('formLogin').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const data = {
+                name: document.getElementById('name').value,
+                password: document.getElementById('password').value
+            };
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                const messageEl = document.getElementById('message');
+                const showMessage = (text, type) => {
+                    messageEl.textContent = text;
+                    messageEl.className = `auth-message mb-3 alert alert-${type}`;
+                };
+
+                if (data.mensaje === 'Login exitoso') {
+                    console.log(data);
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('usuarioNombre', data.user.name);
+                    showMessage('¡Bienvenido de nuevo! Redirigiendo...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'usuario.html';
+                    }, 1200);
+                } else {
+                    showMessage('Error: ' + (data.mensaje || 'Credenciales incorrectas'), 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const messageEl = document.getElementById('message');
+                messageEl.textContent = 'No se pudo conectar con el servidor. Intenta de nuevo más tarde.';
+                messageEl.className = 'auth-message mb-3 alert alert-danger';
+            });
+        });
+       
+    </script>
+    
+    
+</body>
+</html>

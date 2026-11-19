@@ -1,0 +1,11 @@
+body { background-color: #f8f9fa; }
+.navbar-brand { font-size: 1.2rem; }
+.task-container {
+    border-radius: 20px;
+    background: white;
+    border: 1px solid #eee;
+}
+.btn-outline-danger, .btn-outline-primary {
+    border-radius: 10px;
+    font-weight: 500;
+}

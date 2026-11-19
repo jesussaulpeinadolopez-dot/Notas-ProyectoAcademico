@@ -1,0 +1,11 @@
+body { background-color: #f4f7f6; }
+.rounded-description {
+    border-radius: 25px !important; /* Bordes muy redondeados según wireframe */
+    padding: 20px;
+    border: 1px solid #ced4da;
+    resize: none;
+}
+.btn-dark {
+    background-color: #333;
+    border: none;
+}

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tablero - Tareas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="usuario.css">
+</head>
+<body>
+    <nav class="navbar navbar-light bg-white shadow-sm mb-4">
+        <div class="container">
+            <span class="navbar-brand fw-bold" id="userDisplayName2">Cargando...</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="logout()">Cerrar sesión</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="mb-4">
+            <a href="crear-tarea.html" class="btn btn-link btn-sm text-muted text-decoration-none">+ Tarea</a>
+        </div>
+
+        <div id="tasksContainer">
+            </div>
+    </div>
+
+    <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="editTaskModalLabel">Editar Tarea</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editTaskId">
+            
+            <div class="mb-3">
+              <label for="editTaskName" class="form-label">Nombre de la tarea</label>
+              <input type="text" class="form-control" id="editTaskName" placeholder="Ej. Comprar leche">
+            </div>
+            <div class="mb-3">
+              <label for="editTaskDesc" class="form-label">Descripción</label>
+              <textarea class="form-control" id="editTaskDesc" rows="3" placeholder="Detalles de la tarea..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveTask()">Guardar Cambios</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+       async function logout() {
+    // 1. Recuperamos el token que tienes guardado
+    const token = localStorage.getItem('token');
+
+    // 2. Si hay un token, le avisamos al backend que lo destruya
+    if (token) {
+        try {
+            // Asegúrate de cambiar esta URL por la ruta real de tu API
+            await fetch('/api/logout', { 
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Enviamos el token para que Laravel sepa quién es
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('Backend notificado: Token eliminado de la BD');
+        } catch (error) {
+            console.error('Error al avisar al servidor del logout:', error);
+        }
+    }
+
+    // 3. Destruimos los datos locales en el navegador (pase lo que pase con el servidor)
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuarioNombre');
+    
+    // 4. Redirigimos al login
+    window.location.href = 'login.html';
+}
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+        
+        const nombre = localStorage.getItem('usuarioNombre');
+        document.getElementById('userDisplayName2').innerText = nombre ? nombre : "Invitado";
+
+        // Variable global para manejar el modal de Bootstrap
+        let taskModal;
+        document.addEventListener('DOMContentLoaded', () => {
+            taskModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+            loadTasks();
+        });
+
+        function loadTasks() {
+            fetch('/api/tareas', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(tasks => {
+                const container = document.getElementById('tasksContainer');
+                container.innerHTML = '';
+                tasks.forEach(task => {
+                    // Escapamos comillas simples por si el texto las contiene
+                   // Limpiamos comillas simples, comillas dobles y saltos de línea
+const safeName = task.nombre.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+const safeDesc = (task.descripcion || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'card task-container p-3 shadow-sm mx-auto mb-3';
+                    taskCard.style.maxWidth = '500px';
+                    taskCard.innerHTML = `
+                        <div class="text-center mb-3 border-bottom pb-2">
+                            <div class="small text-muted">Fecha: ${new Date(task.created_at).toLocaleDateString()}</div>
+                            <h5 class="fw-bold mb-0">${task.nombre}</h5>
+                        </div>
+                        <p class="text-center text-muted mb-4">${task.descripcion || 'Sin descripción'}</p>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-outline-danger px-4" onclick="deleteTask(${task.id_tarea})">Eliminar</button>
+                            <button class="btn btn-outline-primary px-4" onclick="openEditModal(${task.id_tarea}, '${safeName}', '${safeDesc}')">Editar</button>
+                        </div>
+                    `;
+                    container.appendChild(taskCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading tasks:', error);
+                Swal.fire('Error', 'No se pudieron cargar las tareas', 'error');
+            });
+        }
+
+        // --- FUNCIONES DE EDICIÓN CON MODAL ---
+        function openEditModal(id, currentName, currentDesc) {
+            // Llenamos los datos en el modal
+            document.getElementById('editTaskId').value = id;
+            document.getElementById('editTaskName').value = currentName;
+            document.getElementById('editTaskDesc').value = currentDesc;
+            
+            // Mostramos el modal
+            taskModal.show();
+        }
+
+        function saveTask() {
+            const id = document.getElementById('editTaskId').value;
+            const newName = document.getElementById('editTaskName').value;
+            const newDesc = document.getElementById('editTaskDesc').value;
+
+            if (!newName.trim()) {
+                Swal.fire('Atención', 'El nombre de la tarea no puede estar vacío', 'warning');
+                return;
+            }
+
+            fetch(`/api/tareas/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ nombre: newName, descripcion: newDesc })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.mensaje) {
+                    taskModal.hide(); // Cerramos el modal
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Listo!',
+                        text: data.mensaje,
+                        timer: 2500, 
+                        showConfirmButton: false, 
+                        toast: true, 
+                        position: 'top-end' 
+                    });
+                    loadTasks(); // Recargamos la lista
+                } else {
+                    Swal.fire('Oops...', data.error || data.error_real || 'Error al editar', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error editing task:', error);
+                Swal.fire('Error', 'Problema de conexión con el servidor', 'warning');
+            });
+        }
+
+        // --- FUNCIÓN DE ELIMINAR CON SWEETALERT2 ---
+        function deleteTask(id) {
+            // Alerta de confirmación moderna
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡No podrás revertir esta acción!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                // Si el usuario hace clic en "Sí, eliminar"
+                if (result.isConfirmed) {
+                    fetch(`/api/tareas/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.mensaje) {
+                            // Toast de éxito al eliminar
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Eliminado!',
+                                text: data.mensaje,
+                                timer: 2500,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end'
+                            });
+                            loadTasks();
+                        } else {
+                            Swal.fire('Oops...', data.error || 'Error al eliminar', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting task:', error);
+                        Swal.fire('Error', 'Problema de conexión con el servidor', 'warning');
+                    });
+                }
+            });
+        }
+
+        
+        
+    </script>
+</body>
+</html>

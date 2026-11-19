@@ -1,0 +1,21 @@
+body { background-color: #f0f2f5; }
+.custom-input {
+    border-radius: 8px; /* Rectangulares según wireframe */
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+.btn-primary {
+    background-color: #5a2d82;
+    border: none;
+    border-radius: 8px;
+}
+
+.auth-message {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+.alert {
+    padding: 0.85rem 1rem;
+}
